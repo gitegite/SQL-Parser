@@ -1,0 +1,11 @@
+{
+  "TableName": "staff",
+  "Schema": {
+    "tid": "numeric(4)",
+    "password": "numeric(5)",
+    "fname": "varchar(20)",
+    "lname": "varchar(20)",
+    "staffType": "varchar(10)\r\n"
+  },
+  "Data": {}
+}

@@ -1,0 +1,11 @@
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\bin\Debug\SQLParserDB.exe.config
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\bin\Debug\SQLParserDB.exe
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\bin\Debug\SQLParserDB.pdb
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\obj\Debug\SQLParserDB.csprojResolveAssemblyReference.cache
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\obj\Debug\SQLParserDB.MainForm.resources
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\obj\Debug\SQLParserDB.Properties.Resources.resources
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\obj\Debug\SQLParserDB.csproj.GenerateResource.Cache
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\obj\Debug\SQLParserDB.exe
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\obj\Debug\SQLParserDB.pdb
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Guide\Source\Workspaces\HabitatService\SQLParserDB\SQLParserDB\bin\Debug\Newtonsoft.Json.xml
