@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -33,31 +34,51 @@ namespace SQLParserDB
             }
             else
             {
+                Schema schema = JsonConvert.DeserializeObject<Schema>(result);
                 JObject json = JObject.Parse(result);
-
-                if (json["Data"].Children().Count() != 0)
+                if (schema.Data.Count != 0)
                 {
-                    foreach (JProperty item in (JToken)json["Data"]["1"])
+                    foreach (var item in schema.Data.First().Value)
                     {
-                        TableGridView.Columns.Add(new DataGridViewTextBoxColumn() { HeaderText = item.Name, Name = item.Name });
+                        TableGridView.Columns.Add(new DataGridViewTextBoxColumn() { HeaderText = item.Key, Name = item.Key });
 
                     }
-                    foreach (var record in json["Data"])
+                    List<string> valueList = new List<string>();
+                    foreach (var item in schema.Data.Values)
                     {
-                        List<string> valueList = new List<string>();
-                        foreach (JProperty data in record.Values())
+                        foreach (var attr in item)
                         {
-                            valueList.Add(data.Value.ToString());
+                            valueList.Add(attr.Value);
                         }
                         TableGridView.Rows.Add(valueList.ToArray());
+
                     }
                 }
+
+
+                //if (json["Data"].Children().Count() != 0)
+                //{
+                //    foreach (JProperty item in (JToken)json["Data"]["1"])
+                //    {
+                //        TableGridView.Columns.Add(new DataGridViewTextBoxColumn() { HeaderText = item.Name, Name = item.Name });
+
+                //    }
+                //    foreach (var record in json["Data"])
+                //    {
+                //        List<string> valueList = new List<string>();
+                //        foreach (JProperty data in record.Values())
+                //        {
+                //            valueList.Add(data.Value.ToString());
+                //        }
+                //        TableGridView.Rows.Add(valueList.ToArray());
+                //    }
+                //}
                 else
                 {
                     EditorTextBox.Text = "No Values!";
                 }
             }
-            
+
         }
 
         private void ClearButton_Click(object sender, EventArgs e)

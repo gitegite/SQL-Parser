@@ -47,7 +47,49 @@ namespace SQLParserDB
             return MySubString.SubString(attribute, 0, attribute.IndexOf('(') - 1);
 
         }
-        Schema _OldSchema = new Schema();
+        void Cartesian(Schema target, Schema table1, Schema table2)
+        {
+            var cartesianed = new Dictionary<string, Dictionary<string, string>>();
+            int surrogatekey = 0;
+            foreach (var record1 in table1.Data)
+            {
+                var temp = new Dictionary<string, string>();
+                var temp2 = new Dictionary<string, string>();
+                var temp3 = new Dictionary<string, string>();
+
+                foreach (var attribute in record1.Value)
+                {
+                    temp.Add(attribute.Key, attribute.Value);
+                }
+                foreach (var record2 in table2.Data)
+                {
+                    foreach (var item in temp)
+                    {
+                        temp3.Add(item.Key, item.Value);
+                    }
+                    foreach (var attribute2 in record2.Value)
+                    {
+                        temp2.Add(attribute2.Key, attribute2.Value);
+                    }
+
+                    foreach (var item in temp2)
+                    {
+                        temp3.Add(item.Key, item.Value);
+                    }
+
+                    cartesianed.Add(surrogatekey.ToString(), new Dictionary<string, string>(temp3));
+                    surrogatekey++;
+                    temp3.Clear();
+                    temp2.Clear();
+                }
+            }
+            foreach (var item in cartesianed)
+            {
+                target.Data.Add(item.Key, item.Value);
+            }
+        }
+        Schema _oldSchema = new Schema();
+        Schema _newSchema = new Schema();
         public string ParseSQLCommand(string p_command)
         {
             string parseResult = "";
@@ -69,14 +111,82 @@ namespace SQLParserDB
             {
                 case "SELECT":
                     string m_selected = "";
+                    var singleTableName = "";
+                    string[] fromTwoTables = new string[2];
                     if (SplittedCommand[1] == "*")
                     {
-
-                        _tableName = @SplittedCommand[3];
-                        if (File.Exists(Path.Combine(_dir, _tableName + ".txt")))
+                        if (!@SplittedCommand[3].Contains(","))
                         {
-                            m_selected = File.ReadAllText(Path.Combine(_dir, _tableName + ".txt"));
-                            parseResult = m_selected;
+                            singleTableName = @SplittedCommand[3];
+                        }
+                        else
+                        {
+                            fromTwoTables = MySubString.SubString(p_command, p_command.IndexOf("from") + 5, p_command.Length - 1).Split(',');
+                            for (int i = 0; i < fromTwoTables.Length; i++)
+                            {
+                                fromTwoTables[i] = fromTwoTables[i].Trim();
+                            }
+                        }
+                        if (File.Exists(Path.Combine(_dir, singleTableName + ".txt")) || File.Exists(Path.Combine(_dir, fromTwoTables[0] + ".txt")))
+                        {
+                            _newSchema = new Schema();
+
+                            if (!p_command.Contains("where"))
+                            {
+
+                                if (fromTwoTables[1] != null)
+                                {
+                                    Schema table1 = JsonConvert.DeserializeObject<Schema>(File.ReadAllText(Path.Combine(_dir, fromTwoTables[0] + ".txt")));
+                                    Schema table2 = JsonConvert.DeserializeObject<Schema>(File.ReadAllText(Path.Combine(_dir, fromTwoTables[1] + ".txt")));
+                                    Cartesian(_newSchema, table1, table2);
+                                    parseResult = JsonConvert.SerializeObject(_newSchema);
+                                }
+                                else
+                                {
+                                    m_selected = File.ReadAllText(Path.Combine(_dir, singleTableName + ".txt"));
+                                    parseResult = m_selected;
+                                }
+                            }
+                            else
+                            {
+                                string whereClause = MySubString.SubString(p_command, p_command.IndexOf("where"), p_command.Length - 1);
+                                whereClause = whereClause.Replace("where", "");
+                                string[] whereClauseKeyValue = whereClause.Split('=');
+
+                                if (fromTwoTables[1] == null)
+                                {
+                                    _oldSchema = JsonConvert.DeserializeObject<Schema>(File.ReadAllText(Path.Combine(_dir, singleTableName + ".txt")));
+
+
+                                    foreach (var record in _oldSchema.Data)
+                                    {
+                                        foreach (var attribute in record.Value)
+                                        {
+                                            if (attribute.Key == whereClauseKeyValue[0].Trim() && attribute.Value == whereClauseKeyValue[1].Trim().Replace("'", ""))
+                                            {
+                                                _newSchema.Data.Add(record.Key, record.Value);
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    fromTwoTables[1] = MySubString.SubString(fromTwoTables[1], 0, fromTwoTables[1].IndexOf(' ') - 1);
+                                    Schema table1 = JsonConvert.DeserializeObject<Schema>(File.ReadAllText(Path.Combine(_dir, fromTwoTables[0] + ".txt")));
+                                    Schema table2 = JsonConvert.DeserializeObject<Schema>(File.ReadAllText(Path.Combine(_dir, fromTwoTables[1] + ".txt")));
+                                    Cartesian(_newSchema, table1, table2);
+                                    foreach (var record in _newSchema.Data.Reverse())
+                                    {
+                                        if (record.Value.Any(x => x.Key == whereClauseKeyValue[0].Trim() && x.Value != whereClauseKeyValue[1].Trim().Replace("'", "")))
+                                        {
+                                            _newSchema.Data.Remove(record.Key);
+                                        }
+
+                                    }
+                                }
+                                parseResult = JsonConvert.SerializeObject(_newSchema);
+
+                            }
                         }
                         else
                         {
@@ -125,28 +235,26 @@ namespace SQLParserDB
                     break;
                 case "UPDATE":
 
-                    _tableName = @SplittedCommand[1].Replace(System.Environment.NewLine,"").Replace("set","");
+                    _tableName = @SplittedCommand[1].Replace(System.Environment.NewLine, "").Replace("set", "");
                     string m_toUpdate = File.ReadAllText(Path.Combine(_dir, _tableName + ".txt"));
                     string m_fieldsToUpdate = MySubString.SubString(p_command, p_command.IndexOf("set") + 3, p_command.Length - 1);
-                    Console.WriteLine(m_fieldsToUpdate);
                     string[] m_fields = m_fieldsToUpdate.Trim().Split(',');
-                     _OldSchema = JsonConvert.DeserializeObject<Schema>(m_toUpdate);
-                                                                    
+                    _oldSchema = JsonConvert.DeserializeObject<Schema>(m_toUpdate);
+
                     foreach (var item in m_fields)
                     {
                         string[] temp = item.Trim().Split('=');
                         string attrName = temp[0].Trim();
-                        string updateValue = temp[1].Replace("'","").Trim();
-                        foreach (var record in _OldSchema.Data.Values)
+                        string updateValue = temp[1].Replace("'", "").Trim();
+                        foreach (var record in _oldSchema.Data.Values)
                         {
                             record[attrName] = updateValue;
                         }
-                        
+
                     }
-                    
-                    //Console.WriteLine(toUpdateJson);
+
                     File.Delete(Path.Combine(_dir, _tableName + ".txt"));
-                    File.WriteAllText(Path.Combine(_dir, _tableName + ".txt"), JsonConvert.SerializeObject(_OldSchema,Formatting.Indented));
+                    File.WriteAllText(Path.Combine(_dir, _tableName + ".txt"), JsonConvert.SerializeObject(_oldSchema, Formatting.Indented));
 
 
                     break;
@@ -156,37 +264,37 @@ namespace SQLParserDB
                     Console.WriteLine(m_value);
                     bool IsInsertError = false;
                     string[] m_valueSplitted = m_value.Split(',');
-                    _OldSchema = JsonConvert.DeserializeObject<Schema>(File.ReadAllText(Path.Combine(_dir, m_tableNameI + ".txt")));
+                    _oldSchema = JsonConvert.DeserializeObject<Schema>(File.ReadAllText(Path.Combine(_dir, m_tableNameI + ".txt")));
                     int insertValueIndex = 0;
-                    int surrogateKey = _OldSchema.Data.Count;
-                    Dictionary<string,string> newRecord = new Dictionary<string,string>();
-                    foreach (var item in _OldSchema.Attributes)
+                    int surrogateKey = _oldSchema.Data.Count;
+                    Dictionary<string, string> newRecord = new Dictionary<string, string>();
+                    foreach (var item in _oldSchema.Attributes)
                     {
-                   
-                       int attrLength =  GetAttributeLength(item.Value);
-                       if (insertValueIndex < m_valueSplitted.Length)
-                       {
-                           //if (ValidateValueAndType(GetAttributeName(item.Value), m_valueSplitted[insertValueIndex], attrLength))
-                           //{
-                           //    newRecord.Add(item.Key, m_valueSplitted[insertValueIndex]);
-                           //}
-                           newRecord.Add(item.Key, m_valueSplitted[insertValueIndex].Replace("'", ""));
-                       }
-                       else
-                       {
-                           newRecord.Add(item.Key, "");
-                       }
-                       
-                        
-                        insertValueIndex++; 
+
+                        int attrLength = GetAttributeLength(item.Value);
+                        if (insertValueIndex < m_valueSplitted.Length)
+                        {
+                            //if (ValidateValueAndType(GetAttributeName(item.Value), m_valueSplitted[insertValueIndex], attrLength))
+                            //{
+                            //    newRecord.Add(item.Key, m_valueSplitted[insertValueIndex]);
+                            //}
+                            newRecord.Add(item.Key, m_valueSplitted[insertValueIndex].Replace("'", ""));
+                        }
+                        else
+                        {
+                            newRecord.Add(item.Key, "");
+                        }
+
+
+                        insertValueIndex++;
                     }
                     surrogateKey += 1;
-                    _OldSchema.Data.Add(surrogateKey.ToString(), newRecord);
+                    _oldSchema.Data.Add(surrogateKey.ToString(), newRecord);
 
                     if (!IsInsertError)
                     {
                         File.Delete(Path.Combine(_dir, m_tableNameI + ".txt"));
-                        File.WriteAllText(Path.Combine(_dir, m_tableNameI + ".txt"),JsonConvert.SerializeObject(_OldSchema,Formatting.Indented));
+                        File.WriteAllText(Path.Combine(_dir, m_tableNameI + ".txt"), JsonConvert.SerializeObject(_oldSchema, Formatting.Indented));
                     }
 
                     break;
@@ -196,12 +304,12 @@ namespace SQLParserDB
 
                     string m_schema = MySubString.SubString(p_command, p_command.IndexOf('(') + 1, p_command.LastIndexOf(';') - 2);
 
-                    Schema newSchema = new Schema(m_tableNameC);
+                    _newSchema = new Schema(m_tableNameC);
                     string[] properties = m_schema.Replace(System.Environment.NewLine, "").Split(',');
                     foreach (var item in properties)
                     {
                         string[] singleProperty = item.Split(' ');
-                        newSchema.Attributes.Add(singleProperty[0], singleProperty[1]);
+                        _newSchema.Attributes.Add(singleProperty[0], singleProperty[1]);
                     }
 
                     _dir = @"C:\DBparser\Schemas";  // folder location
@@ -210,7 +318,7 @@ namespace SQLParserDB
                         Directory.CreateDirectory(_dir);
 
                     // use Path.Combine to combine 2 strings to a path
-                    File.WriteAllText(Path.Combine(_dir, m_tableNameC + ".txt"), JsonConvert.SerializeObject(newSchema, Formatting.Indented));
+                    File.WriteAllText(Path.Combine(_dir, m_tableNameC + ".txt"), JsonConvert.SerializeObject(_newSchema, Formatting.Indented));
 
 
                     parseResult = "Create Table Successfully!";
