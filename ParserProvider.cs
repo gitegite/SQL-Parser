@@ -23,9 +23,12 @@ namespace SQLParserDB
             table1.Data = new Dictionary<string, Dictionary<string, string>>(table1.Data.OrderBy(x => x.Value[attr1]).ToDictionary(x => x.Key, x => x.Value));
             table2.Data = new Dictionary<string, Dictionary<string, string>>(table2.Data.OrderBy(x => x.Value[attr2]).ToDictionary(x => x.Key, x => x.Value));
 
-            foreach (var record in table1.Data)
+            while (!table1.IsDone() && !table2.IsDone())
             {
-                
+                if (table1.Data[table1.Position.ToString()][attr1] == table2.Data[table2.Position.ToString()][attr2])
+                {
+
+                }
             }
             
             Cartesian(target, table1, table2);
