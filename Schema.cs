@@ -21,7 +21,7 @@ namespace SQLParserDB
             TableName = "";
             Attributes = new Dictionary<string, string>();
             Data = new Dictionary<string, Dictionary<string,string>>();
-            
+            Position = 1;
         }
 
         public Schema(string m_tableNameC)
@@ -29,7 +29,7 @@ namespace SQLParserDB
             TableName = m_tableNameC;
             Attributes = new Dictionary<string, string>();
             Data = new Dictionary<string, Dictionary<string,string>>();
-            Position = 0;
+            Position = 1;
         }
 
         public bool IsDone() { return Position == EndPosition; }
