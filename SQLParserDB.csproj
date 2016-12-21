@@ -61,6 +61,7 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="JoinSchema.cs" />
     <Compile Include="MySubString.cs" />
     <Compile Include="ParserProvider.cs" />
     <Compile Include="Program.cs" />

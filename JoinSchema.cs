@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,29 +6,29 @@ using System.Threading.Tasks;
 
 namespace SQLParserDB
 {
-    public class Schema
+    public class JoinSchema
     {
         private string m_tableNameC;
 
         public string TableName { get; set; }
-        public Dictionary<string,string> Attributes { get; set; }
-        public Dictionary<string, Dictionary<string,string>> Data { get; set; }
+        public Dictionary<string, string> Attributes { get; set; }
+        public Dictionary<string, List<Tuple<string, string>>> Data { get; set; }
         public const int EndPosition = -1;
         public int Position { get; set; }
 
-        public Schema()
+        public JoinSchema()
         {
             TableName = "";
             Attributes = new Dictionary<string, string>();
-            Data = new Dictionary<string, Dictionary<string,string>>();
+            Data = new Dictionary<string, List<Tuple<string, string>>>();
             Position = 0;
         }
 
-        public Schema(string m_tableNameC)
+        public JoinSchema(string m_tableNameC)
         {
             TableName = m_tableNameC;
             Attributes = new Dictionary<string, string>();
-            Data = new Dictionary<string, Dictionary<string,string>>();
+            Data = new Dictionary<string, List<Tuple<string, string>>>();
             Position = 0;
         }
 
@@ -40,7 +40,7 @@ namespace SQLParserDB
                 Position = EndPosition;
                 return false;
             }
-            this.Position++;
+            Position++;
             return true;
         }
 

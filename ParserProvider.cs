@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,28 +22,71 @@ namespace SQLParserDB
         {
             table1.Data = new Dictionary<string, Dictionary<string, string>>(table1.Data.OrderBy(x => x.Value[attr1]).ToDictionary(x => x.Key, x => x.Value));
             table2.Data = new Dictionary<string, Dictionary<string, string>>(table2.Data.OrderBy(x => x.Value[attr2]).ToDictionary(x => x.Key, x => x.Value));
-
+            
+            int i = 1;
+            var tempTable1 = new Schema();
+            var tempTable2 = new Schema();
+            foreach (var item in table1.Data)
+            {
+                tempTable1.Data.Add(i.ToString(), new Dictionary<string, string>(table1.Data[item.Key]));
+                //table1.Data.Add(i.ToString(), new Dictionary<string, string>(table1.Data[item.Key]));
+                i++;
+            }
+            i = 1;
+            foreach (var item in table2.Data)
+            {
+                tempTable2.Data.Add(i.ToString(), new Dictionary<string, string>(table2.Data[item.Key]));
+                //table1.Data.Add(i.ToString(), new Dictionary<string, string>(table1.Data[item.Key]));
+                i++;
+            }
+            table1.Data = new Dictionary<string, Dictionary<string, string>>(tempTable1.Data);
+            table2.Data = new Dictionary<string, Dictionary<string, string>>(tempTable2.Data);
+            int surrogatekey = 1;
             while (!table1.IsDone() && !table2.IsDone())
             {
-                if (table1.Data[table1.Position.ToString()][attr1] == table2.Data[table2.Position.ToString()][attr2])
+                int leftPosition = table1.Position + 1;
+                int rightPosition = table2.Position + 1;
+                List<Tuple<string, string>> newRecord = new List<Tuple<string, string>>();
+                if (Convert.ToInt32(table1.Data[leftPosition.ToString()][attr1]) == Convert.ToInt32(table2.Data[rightPosition.ToString()][attr2]))
                 {
+                    foreach (var attribute in table1.Data[leftPosition.ToString()])
+                    {
+                        newRecord.Add(new Tuple<string, string>(attribute.Key, attribute.Value));    
+                    }
+                    foreach (var attribute in table2.Data[rightPosition.ToString()])
+                    {
+                        newRecord.Add(new Tuple<string, string>(attribute.Key, attribute.Value));    
+                    }
+                    
+                    table1.Advance();
+                    table2.Advance();
+                }
+                else if (Convert.ToInt32(table1.Data[leftPosition.ToString()][attr1]) < Convert.ToInt32(table2.Data[rightPosition.ToString()][attr2]))
+                    table1.Advance();
+                else // if (left.Key > right.Key)
+                    table2.Advance();
 
+
+                if (newRecord.Any())
+                {
+                    target.Data.Add(surrogatekey.ToString(), new List<Tuple<string,string>>(newRecord));
+                    surrogatekey++;
                 }
             }
             
-            Cartesian(target, table1, table2);
-            foreach (var record in target.Data.Reverse())
-            {
-                var xx = record.Value.ToLookup(x => x.Item1, x => x.Item2)[attr1];
-                var yy = record.Value.ToLookup(y => y.Item1, x => x.Item2)[attr2];
-                var table1Attribute = xx.ElementAt(0);
-                var table2Attribute = yy.Count() > 1 ? yy.ElementAt(1) : yy.ElementAt(0);
-                if (!table1Attribute.Equals(table2Attribute))
-                {
-                    target.Data.Remove(record.Key);
-                }
+            //Cartesian(target, table1, table2);
+            //foreach (var record in target.Data.Reverse())
+            //{
+            //    var xx = record.Value.ToLookup(x => x.Item1, x => x.Item2)[attr1];
+            //    var yy = record.Value.ToLookup(y => y.Item1, x => x.Item2)[attr2];
+            //    var table1Attribute = xx.ElementAt(0);
+            //    var table2Attribute = yy.Count() > 1 ? yy.ElementAt(1) : yy.ElementAt(0);
+            //    if (!table1Attribute.Equals(table2Attribute))
+            //    {
+            //        target.Data.Remove(record.Key);
+            //    }
 
-            }
+            //}
 
         }
 

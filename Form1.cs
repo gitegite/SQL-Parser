@@ -34,13 +34,13 @@ namespace SQLParserDB
             }
             else
             {
-                Schema schema = JsonConvert.DeserializeObject<Schema>(result);
+                JoinSchema schema = JsonConvert.DeserializeObject<JoinSchema>(result);
                 JObject json = JObject.Parse(result);
                 if (schema.Data.Count != 0)
                 {
                     foreach (var item in schema.Data.First().Value)
                     {
-                        TableGridView.Columns.Add(new DataGridViewTextBoxColumn() { HeaderText = item.Key, Name = item.Key });
+                        TableGridView.Columns.Add(new DataGridViewTextBoxColumn() { HeaderText = item.Item1, Name = item.Item2 });
 
                     }
                     List<string> valueList = new List<string>();
@@ -48,10 +48,11 @@ namespace SQLParserDB
                     {
                         foreach (var attr in item)
                         {
-                            valueList.Add(attr.Value);
+                            valueList.Add(attr.Item2);
                         }
-                        TableGridView.Rows.Add(valueList.ToArray());
-
+                        if (valueList.Any())
+                            TableGridView.Rows.Add(valueList.ToArray());
+                        valueList.Clear();
                     }
                 }
 
