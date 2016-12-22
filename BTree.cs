@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,13 +31,35 @@ namespace SQLParserDB
             {
                 return !this.InternalNodes.Any(x => x.LeftNode != null || x.RightNode != null);
             }
-            public bool IsRootNode()
+            public bool IsRootNode(Node root)
             {
-                return this.ParentNode == null;
+                return this == root ;
             }
         }
         public class InterNalNode
         {
+            public InterNalNode(int value, string key)
+            {
+                // TODO: Complete member initialization
+                this.Value = value;
+                this.RecordKey = key;
+                this.LeftNode = null;
+                this.RightNode = null;
+            }
+            public InterNalNode()
+            {
+                this.Value = 0;
+                this.RecordKey = "";
+                this.LeftNode = null;
+                this.RightNode = null;
+            }
+            public InterNalNode(InterNalNode node)
+            {
+                this.Value = node.Value;
+                this.RecordKey = node.RecordKey;
+                this.LeftNode = node.LeftNode;
+                this.RightNode = node.RightNode;
+            }
             public Node LeftNode { get; set; }
             public Node RightNode { get; set; }
             public string RecordKey { get; set; }
@@ -63,26 +85,61 @@ namespace SQLParserDB
         {
             if (node.IsLeafNode())
                 return node;
-            else if (node.InternalNodes.First().Value > value)
+            else if (node.InternalNodes[0].Value > value)
             {
+                //less than first item
                 node = GoLeft(node.InternalNodes.First());
-                return TreeSearch(node, value);
-            }
-            else if (node.InternalNodes.First().Value < value && node.InternalNodes[1].Value > value)
-            {
-                node = GoRight(node.InternalNodes.First());
-                return TreeSearch(node, value);
-            }
-            else if (node.InternalNodes[1].Value < value && node.InternalNodes[2].Value > value)
-            {
-                node = GoLeft(node.InternalNodes[2]);
                 return TreeSearch(node, value);
             }
             else
             {
-                node = GoRight(node.InternalNodes[2]);
-                return TreeSearch(node, value);
+                //more than first item
+                if (node.InternalNodes.Count >= 2)
+                {
+                    if (node.InternalNodes[1].Value < value)
+                    {//more than second item and more than first item 
+                        node = GoRight(node.InternalNodes[1]);
+                        return TreeSearch(node, value);
+                    }
+                    else if(node.InternalNodes[1].Value > value)
+                    {
+                        if (node.InternalNodes.Count == 3)
+                        {
+                            if (node.InternalNodes[2].Value > value)
+                            {
+                                //more than second item but less than third item
+                                node = GoLeft(node.InternalNodes[2]);
+                                return TreeSearch(node, value);
+                            }
+                            else
+                            {
+                                // more than every item
+                                node = GoRight(node.InternalNodes[2]);
+                                return TreeSearch(node, value);
+                            }
+                        }
+                        else
+                        {
+                            //less than second item and more than first item
+                            node = GoLeft(node.InternalNodes[1]);
+                            return TreeSearch(node, value);
+                        }
+                    }
+                    else
+                    {
+                        return TreeSearch(node, value);
+                    }           
+                
+                }
+                else
+                {
+                    //more than first item but has one item
+                    node = GoRight(node.InternalNodes.First());
+                    return TreeSearch(node, value);
+
+                }
             }
+          
 
         }
         public bool IsEmpty()
@@ -97,31 +154,63 @@ namespace SQLParserDB
         {
             return node.RightNode;
         }
-
-        public void Split(Node node, int value)
+        public int FindMin()
         {
+            Node node = this.RootNode;
+            while (!node.IsLeafNode())
+            {
+                node = GoLeft(node.InternalNodes.First());
+            }
+            return node.InternalNodes.First().Value;
+        }
+        public int FindMax()
+        {
+            Node node = this.RootNode;
+            while (!node.IsLeafNode())
+            {
+                node = GoRight(node.InternalNodes.Last());
+            }
+            return node.InternalNodes.Last().Value;
+        }
 
+        public void Split(Node node, int value, string key)
+        {
             Node newLeafLeft = new Node();
             Node newLeafRight = new Node();
             Node tempNode = new Node();
             tempNode.InternalNodes = new List<InterNalNode>(node.InternalNodes);
-            tempNode.InternalNodes.Add(new InterNalNode() { Value = value });
+            tempNode.InternalNodes.Add(new InterNalNode() { Value = value, RecordKey = key });
             tempNode.Sort();
             int middleValue = tempNode.InternalNodes[1].Value;
-            newLeafLeft.InternalNodes.Add(tempNode.InternalNodes[0]);
-            newLeafLeft.InternalNodes.Add(tempNode.InternalNodes[1]);
-            newLeafRight.InternalNodes.Add(tempNode.InternalNodes[2]);
-            newLeafRight.InternalNodes.Add(tempNode.InternalNodes[3]);
+            newLeafLeft.InternalNodes.Add(new InterNalNode(tempNode.InternalNodes[0].Value,tempNode.InternalNodes[0].RecordKey));
+            newLeafLeft.InternalNodes.Add(new InterNalNode(tempNode.InternalNodes[1].Value, tempNode.InternalNodes[1].RecordKey));
+            newLeafRight.InternalNodes.Add(new InterNalNode(tempNode.InternalNodes[2].Value, tempNode.InternalNodes[2].RecordKey));
+            newLeafRight.InternalNodes.Add(new InterNalNode(tempNode.InternalNodes[3].Value, tempNode.InternalNodes[3].RecordKey));
+            
             tempNode.InternalNodes[1].LeftNode = newLeafLeft;
             tempNode.InternalNodes[1].RightNode = newLeafRight;
 
-            if (!node.IsRootNode())
+            if (!node.IsRootNode(this.RootNode))
             {
-                if (!node.ParentNode.IsFull())
+                if (!node.ParentNode.IsFull()){
                     node.ParentNode.InternalNodes.Add(tempNode.InternalNodes[1]);
+                    //node.ParentNode.InternalNodes.Add(new InterNalNode(tempNode.InternalNodes[1].Value,tempNode.InternalNodes[1].RecordKey));                    
+                    newLeafLeft.ParentNode = node.ParentNode;
+                    newLeafRight.ParentNode = node.ParentNode;
+                    this.Nodes.Add(newLeafLeft);
+                    this.Nodes.Add(newLeafRight);
+                    this.Nodes.Remove(node);
+
+                }
                 else
                 {
-
+                    newLeafLeft.ParentNode = node.ParentNode;
+                    newLeafRight.ParentNode = node.ParentNode;
+                    this.Nodes.Add(newLeafLeft);
+                    this.Nodes.Add(newLeafRight);
+                    this.Nodes.Remove(node);
+                    //Split(node.ParentNode, tempNode.InternalNodes[1].Value, tempNode.InternalNodes[1].RecordKey);
+                    SplitRoot(node.ParentNode, tempNode.InternalNodes[1]);
                 }
             }
             else
@@ -134,11 +223,12 @@ namespace SQLParserDB
                     this.RootNode = newRoot;
                     newLeafLeft.ParentNode = newRoot;
                     newLeafRight.ParentNode = newRoot;
+
+
                     this.Nodes.Add(newRoot);
                     this.Nodes.Add(newLeafLeft);
                     this.Nodes.Add(newLeafRight);
                     this.Nodes.Remove(node);
-                    //Split(node, tempNode.InternalNodes[1].Value);
                 }
                 else
                 {
@@ -149,7 +239,32 @@ namespace SQLParserDB
 
 
         }
+        void SplitRoot(Node root, InterNalNode insertedNode)
+        {
+            Node newLeafLeft = new Node();
+            Node newLeafRight = new Node();
+            Node newRoot = new Node();
 
+            root.InternalNodes.Add(insertedNode);
+            root.Sort();
+            newLeafLeft.InternalNodes.Add(new InterNalNode(root.InternalNodes[0]));
+            newLeafLeft.InternalNodes.Add(new InterNalNode(root.InternalNodes[1]));
+            newLeafRight.InternalNodes.Add(new InterNalNode(root.InternalNodes[2]));
+            newLeafRight.InternalNodes.Add(new InterNalNode(root.InternalNodes[3]));
+            newLeafLeft.ParentNode = newRoot;
+            newLeafRight.ParentNode = newRoot;
+
+            newRoot.InternalNodes.Add(new InterNalNode(root.InternalNodes[1].Value,root.InternalNodes[1].RecordKey));
+            newRoot.InternalNodes[0].LeftNode = newLeafLeft;
+            newRoot.InternalNodes[0].RightNode = newLeafRight;
+
+            this.Nodes.Remove(root);
+            this.RootNode = newRoot;
+            this.Nodes.Add(newRoot);
+            this.Nodes.Add(newLeafLeft);
+            this.Nodes.Add(newLeafRight);
+
+        }
         public void Insert(int value, string recordKey)
         {
             InterNalNode newInternalNode = new InterNalNode()
@@ -177,7 +292,7 @@ namespace SQLParserDB
                 }
                 else
                 {
-                    Split(target, value);
+                    Split(target, value,recordKey);
                 }
 
             }
@@ -190,7 +305,6 @@ namespace SQLParserDB
                 Console.WriteLine();
             }
         }
-
 
     }
 }
